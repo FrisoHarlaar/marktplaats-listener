@@ -1,0 +1,10 @@
+[project]
+name = "marktplaats-listener"
+version = "0.1.0"
+description = "Self-hosted Marktplaats price listener with Telegram notifications"
+requires-python = ">=3.14"
+dependencies = [
+    "marktplaats==0.4.0",
+    "python-telegram-bot==22.7",
+    "pyyaml==6.0.3",
+]

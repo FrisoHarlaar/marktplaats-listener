@@ -1,0 +1,18 @@
+[Unit]
+Description=Marktplaats Price Listener
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust User and paths to match your Ubuntu setup
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/marktplaats-listener
+ExecStart=uv run python listener.py
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

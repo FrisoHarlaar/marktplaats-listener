@@ -1,0 +1,24 @@
+# Marktplaats Listener — configuration
+# Copy this file to config.yaml and fill in your values.
+
+telegram:
+  bot_token: "YOUR_BOT_TOKEN_HERE"      # From @BotFather on Telegram
+  chat_id: "YOUR_CHAT_ID_HERE"          # Your personal chat ID (use @userinfobot)
+
+# How often to poll (minimum 5 minutes recommended to avoid rate limiting)
+poll_interval_minutes: 5
+
+# List of search queries to monitor
+# max_price is in euros (€). Remove it to get alerts for any price.
+queries:
+  - keyword: "iPhone 14 Pro"
+    max_price: 700
+
+  - keyword: "MacBook Air M2"
+    max_price: 1100
+
+  - keyword: "Sony WH-1000XM5"
+    max_price: 200
+
+  # Example without a price cap:
+  # - keyword: "LEGO Technic"
