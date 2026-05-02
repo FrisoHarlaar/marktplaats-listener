@@ -1,0 +1,11 @@
+services:
+  marktplaats-listener:
+    build: .
+    container_name: marktplaats-listener
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - marktplaats-data:/app/data
+
+volumes:
+  marktplaats-data:
