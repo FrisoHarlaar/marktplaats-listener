@@ -1,5 +1,8 @@
 # Marktplaats Listener — configuration
 # Copy this file to config.yaml and fill in your values.
+#
+# Queries worden NIET hier geconfigureerd.
+# Stuur /add, /remove en /list via Telegram om zoekopdrachten te beheren.
 
 telegram:
   bot_token: "YOUR_BOT_TOKEN_HERE"      # From @BotFather on Telegram
@@ -7,18 +10,3 @@ telegram:
 
 # How often to poll (minimum 5 minutes recommended to avoid rate limiting)
 poll_interval_minutes: 5
-
-# List of search queries to monitor
-# max_price is in euros (€). Remove it to get alerts for any price.
-queries:
-  - keyword: "iPhone 14 Pro"
-    max_price: 700
-
-  - keyword: "MacBook Air M2"
-    max_price: 1100
-
-  - keyword: "Sony WH-1000XM5"
-    max_price: 200
-
-  # Example without a price cap:
-  # - keyword: "LEGO Technic"

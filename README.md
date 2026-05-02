@@ -3,16 +3,37 @@
 Bewaakt meerdere Marktplaats-zoekopdrachten op nieuwe advertenties en stuurt
 een **Telegram-melding** zodra er een nieuwe listing onder jouw prijslimiet verschijnt.
 
+Zoekopdrachten beheer je volledig via Telegram — geen configuratiebestand nodig.
+
+---
+
+## Telegram commando's
+
+| Commando | Omschrijving |
+|---|---|
+| `/add <zoekterm> [max:<prijs>]` | Voeg een zoekopdracht toe |
+| `/remove <zoekterm>` | Verwijder een zoekopdracht |
+| `/list` | Bekijk alle actieve zoekopdrachten |
+| `/help` | Toon beschikbare commando's |
+
+**Voorbeelden:**
+```
+/add iPhone 14 Pro max:700
+/add MacBook Air M2
+/add Sony WH-1000XM5 max:200
+/remove MacBook Air M2
+/list
+```
+
 ---
 
 ## Hoe het werkt
 
-1. De listener haalt elke N minuten de nieuwste Marktplaats-advertenties op voor
-   elke zoekopdracht in `config.yaml`.
-2. Nieuwe advertenties (nog niet eerder gezien) worden opgeslagen in een lokale
-   SQLite-database.
-3. Als de prijs onder jouw limiet ligt, ontvang je een Telegram-bericht met
-   titel, prijs, locatie en directe link.
+1. De bot draait als achtergrondproces op je Ubuntu server.
+2. Elke N minuten worden alle actieve zoekopdrachten gecontroleerd op Marktplaats.
+3. Nieuwe advertenties (nog niet eerder gezien) worden opgeslagen in een lokale SQLite-database.
+4. Als de prijs onder jouw limiet ligt, ontvang je een Telegram-bericht met titel, prijs, locatie en directe link.
+5. Zoekopdrachten toevoegen of verwijderen doe je live via Telegram — geen herstart nodig.
 
 ---
 
@@ -38,9 +59,6 @@ source $HOME/.local/bin/env   # of herstart je terminal
 uv sync
 ```
 
-`uv` maakt automatisch een `.venv` aan en installeert alle afhankelijkheden
-uit `pyproject.toml` en `uv.lock`.
-
 ### 4. Telegram Bot aanmaken
 
 1. Open Telegram en zoek op **@BotFather**.
@@ -54,10 +72,11 @@ cp config.example.yaml config.yaml
 nano config.yaml
 ```
 
-Vul in:
+Vul alleen in:
 - `bot_token` — het token van @BotFather
 - `chat_id` — jouw chat ID van @userinfobot
-- `queries` — de zoekopdrachten die je wilt bewaken
+
+Zoekopdrachten voeg je later toe via Telegram.
 
 ### 6. Handmatig testen
 
@@ -65,9 +84,8 @@ Vul in:
 uv run python listener.py
 ```
 
-Je zou binnen enkele seconden een Telegram-bericht moeten ontvangen met
-"Marktplaats Listener gestart". Als er meteen een advertentie overeenkomt,
-krijg je ook die melding.
+Je ontvangt een Telegram-bericht "Marktplaats Listener gestart". Voeg daarna een
+zoekopdracht toe via `/add` en wacht op de eerste poll (standaard 5 minuten).
 
 Druk op **Ctrl+C** om te stoppen.
 
@@ -75,15 +93,24 @@ Druk op **Ctrl+C** om te stoppen.
 
 ## Als systemd-service draaien (aanbevolen)
 
-### 1. Service-bestand aanpassen en kopiëren
+### 1. Pad naar uv achterhalen
 
 ```bash
-# Pas YOUR_USERNAME aan naar jouw Ubuntu-gebruikersnaam
+which uv   # bijv. /home/friso/.local/bin/uv
+```
+
+### 2. Service-bestand aanpassen en kopiëren
+
+Open `marktplaats-listener.service` en pas `User` en `WorkingDirectory` aan.
+Controleer ook of het pad naar `uv` klopt (`ExecStart=uv run python listener.py`
+werkt als `uv` in `$PATH` staat; anders volledig pad opgeven).
+
+```bash
 sed -i "s/YOUR_USERNAME/$(whoami)/g" marktplaats-listener.service
 sudo cp marktplaats-listener.service /etc/systemd/system/
 ```
 
-### 2. Service activeren
+### 3. Service activeren
 
 ```bash
 sudo systemctl daemon-reload
@@ -91,39 +118,19 @@ sudo systemctl enable marktplaats-listener
 sudo systemctl start marktplaats-listener
 ```
 
-### 3. Status controleren
+### 4. Status en logs
 
 ```bash
 sudo systemctl status marktplaats-listener
 
-# Logs bekijken (live):
+# Live logs:
 sudo journalctl -u marktplaats-listener -f
 ```
 
-### 4. Service stoppen of herstarten
+### 5. Herstarten na config-wijziging
 
 ```bash
-sudo systemctl stop marktplaats-listener
 sudo systemctl restart marktplaats-listener
-```
-
----
-
-## Zoekopdrachten aanpassen
-
-Bewerk `config.yaml` en herstart de service:
-
-```bash
-nano config.yaml
-sudo systemctl restart marktplaats-listener
-```
-
-Voorbeeld — zonder prijslimiet:
-```yaml
-queries:
-  - keyword: "Gazelle elektrische fiets"
-  - keyword: "PlayStation 5"
-    max_price: 450
 ```
 
 ---
@@ -132,10 +139,10 @@ queries:
 
 ```
 marktplaats-listener/
-├── listener.py              # Hoofdloop
+├── listener.py              # Telegram bot + achtergrond-pollloop
 ├── search.py                # Marktplaats-zoekopdrachten
-├── notifier.py              # Telegram-meldingen
-├── db.py                    # SQLite opslag (geziene advertenties)
+├── notifier.py              # Berichtopmaak
+├── db.py                    # SQLite: geziene advertenties + actieve queries
 ├── config_loader.py         # Config-parser
 ├── config.yaml              # Jouw instellingen (niet committen!)
 ├── config.example.yaml      # Voorbeeld-config
@@ -143,7 +150,7 @@ marktplaats-listener/
 ├── uv.lock                  # Lockfile met exacte versies
 ├── marktplaats-listener.service  # systemd unit-bestand
 └── data/
-    └── seen.db              # Automatisch aangemaakt
+    └── seen.db              # Automatisch aangemaakt (queries + geziene ads)
 ```
 
 ---
@@ -152,8 +159,8 @@ marktplaats-listener/
 
 - De `marktplaats` Python-package gebruikt de interne Marktplaats-API.
   Bij grote site-updates kan de package tijdelijk breken. Update dan via:
-  `uv add marktplaats@latest`.
+  `uv add marktplaats@latest` en herstart de service.
 - Poll minimaal elke 5 minuten om rate limiting te vermijden.
-- `data/seen.db` wordt automatisch aangemaakt. Advertenties ouder dan
-  60 dagen worden automatisch verwijderd om de database klein te houden.
+- Alleen berichten van jouw `chat_id` worden geaccepteerd — de bot reageert
+  niet op commando's van anderen.
 - `config.yaml` en `data/` staan in `.gitignore` — je token wordt nooit gecommit.

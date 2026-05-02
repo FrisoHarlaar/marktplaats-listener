@@ -1,5 +1,5 @@
 """
-Fetches Marktplaats listings for a given query config and filters unseen ones.
+Fetches Marktplaats listings for a given query and filters unseen ones.
 """
 from __future__ import annotations
 
@@ -9,12 +9,17 @@ from typing import Optional
 
 from marktplaats import SearchQuery, SortBy, SortOrder
 
-from config_loader import QueryConfig
 from db import is_seen
 
 logger = logging.getLogger(__name__)
 
 MAX_LISTINGS_PER_POLL = 30
+
+
+@dataclass
+class QueryConfig:
+    keyword: str
+    max_price: Optional[int] = None  # in euros; None = no cap
 
 
 @dataclass
